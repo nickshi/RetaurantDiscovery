@@ -8,11 +8,11 @@
 import Foundation
 
 protocol Reusable {
-    static var resuableIdentifier: String { get }
+    static var reusableIdentifier: String { get }
 }
 
 extension Reusable {
-    static var resuableIdentifier: String {
+    static var reusableIdentifier: String {
         return String(describing: Self.self)
     }
 }

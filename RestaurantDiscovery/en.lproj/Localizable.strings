@@ -5,3 +5,5 @@
   Created by Nick Shi on 9/26/21.
   
 */
+
+"location-turn-on-tip" = "We need your location. Please go to iOS Settings > Privacy > Location Services and turn on access for Restuarant Discovery";

@@ -9,14 +9,15 @@ import UIKit
 import Cosmos
 import SDWebImage
 import FaveButton
+import RxSwift
 
 class RestaurantCell: UITableViewCell {
     
     private lazy var containerView: UIView = {
         let containerView = UIView()
         containerView.layer.cornerRadius = 10
-        containerView.addShadow(offset: CGSize(width: 0, height: 2), opacity: 0.4, radius: 10, color: .lightGray)
-        containerView.backgroundColor = .white
+        containerView.addShadow(offset: CGSize(width: 0, height: 2), opacity: 0.4, radius: 10, color: .systemGray)
+        containerView.backgroundColor = .systemBackground
         return containerView
     }()
     private lazy var lblName: UILabel = {
@@ -29,6 +30,7 @@ class RestaurantCell: UITableViewCell {
     
     private lazy var ratingView: CosmosView = {
         let ratingView = CosmosView()
+        ratingView.isUserInteractionEnabled = false
         ratingView.text = "(145)"
         return ratingView
     }()
@@ -70,10 +72,14 @@ class RestaurantCell: UITableViewCell {
         return btn
     }()
     
+    private var disposeBag = DisposeBag()
+    
+    private var viewModel: RestaurantCellViewModelType = RestaurantCellViewModel()
     
     override init(style: UITableViewCell.CellStyle, reuseIdentifier: String?) {
         super.init(style: style, reuseIdentifier: reuseIdentifier)
         makeUI()
+        bindViewModel()
     }
     
     required init?(coder: NSCoder) {
@@ -106,18 +112,29 @@ class RestaurantCell: UITableViewCell {
             maker.width.equalTo(imageViewRestaurant.snp.height)
         }
         
-        imageViewRestaurant.sd_setImage(with: URL(string: "https://picsum.photos/200/300")!, completed: nil)
-        
         self.contentView.addSubview(btnLike)
         
         btnLike.snp.makeConstraints { maker in
-            maker.top.equalToSuperview().offset(20)
-            maker.trailing.equalToSuperview().offset(-20)
+            maker.top.equalToSuperview().offset(15)
+            maker.trailing.equalToSuperview().offset(-15)
             maker.width.height.equalTo(30)
         }
     }
     
+    func bindViewModel() {
+        viewModel.output.title.bind(to: self.lblName.rx.text).disposed(by: disposeBag)
+        viewModel.output.subTitle.bind(to: self.lblSubTitle.rx.text).disposed(by: disposeBag)
+        viewModel.output.rating.bind(to: self.ratingView.rx.rating).disposed(by: disposeBag)
+        viewModel.output.userRatingsTotal.bind(to: self.ratingView.rx.text).disposed(by: disposeBag)
+        viewModel.output.imageUrl.subscribe(onNext: {
+            [unowned self] url in
+            self.imageViewRestaurant.sd_setImage(with: url, completed: nil)
+        }).disposed(by: disposeBag)
+    }
     
+    func configure(_ restaurant: Restaurant) {
+        viewModel.input.configure(restaurant)
+    }
 }
 
-extension RestaurantCell: Resuable {}
+extension RestaurantCell: Reusable {}

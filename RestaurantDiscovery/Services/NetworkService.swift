@@ -15,6 +15,7 @@ enum NetworkError: Error {
     case invalidResponse
     case underlying(Error)
 }
+
 class NetworkService: NetworkType {
     func getNearByResturants(_ lat: Double, _ lng: Double, _ keyword: String, _ completionHanlder: @escaping (Result<RestaurantEnvelope, NetworkError>) -> Void) {
         
@@ -24,8 +25,16 @@ class NetworkService: NetworkType {
             }
         }
         
-        let strURL = "https://maps.googleapis.com/maps/api/place/nearbysearch/json?keyword=\(keyword)&location=\(lat)%2C\(lng)&radius=1500&type=restaurant&key=\(GOOGLE_API_KEY)"
-        URLSession.shared.dataTask(with: URL(string: strURL)!) { data, response, error in
+        var components = URLComponents(string: "https://maps.googleapis.com/maps/api/place/nearbysearch/json")
+        components?.queryItems = [
+            URLQueryItem(name: "keyword", value: keyword),
+            URLQueryItem(name: "location", value: "\(lat),\(lng)"),
+            URLQueryItem(name: "radius", value: String(15000)),
+            URLQueryItem(name: "type", value: "restaurant"),
+            URLQueryItem(name: "key", value: GOOGLE_API_KEY),
+        ]
+        
+        URLSession.shared.dataTask(with: components!.url!) { data, response, error in
             if let error = error {
                 dispatch(.failure(.underlying(error)))
                 return
@@ -33,8 +42,18 @@ class NetworkService: NetworkType {
             
             if let response = response as? HTTPURLResponse {
                 if (200...400).contains(response.statusCode) {
-                    if let data = data, let envelope = try? JSONDecoder().decode(RestaurantEnvelope.self, from: data) {
-                        dispatch(.success(envelope))
+                    if let data = data {
+                        do {
+                            let envelope = try JSONDecoder().decode(RestaurantEnvelope.self, from: data)
+                            if envelope.status != "OK" {
+                                dispatch(.failure(.invalidResponse))
+                            } else {
+                                dispatch(.success(envelope))
+                            }
+                            
+                        } catch {
+                            dispatch(.failure(.underlying(error)))
+                        }
                     } else {
                         dispatch(.failure(.invalidResponse))
                     }
